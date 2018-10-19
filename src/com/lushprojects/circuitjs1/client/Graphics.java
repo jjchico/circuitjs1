@@ -49,6 +49,16 @@ public class Graphics {
 	      lastColor=null;
 	  }
 	  
+	  public void clipRect(int x, int y, int width, int height) {
+		  context.save();
+		  context.rect(x, y, width, height);
+		  context.clip();
+	  }
+	  
+	  public void restore() {
+		  context.restore();
+	  }
+	  
 	  public void fillRect(int x, int y, int width, int height) {
 		//  context.beginPath();
 		  context.fillRect(x, y, width, height);
@@ -125,4 +135,20 @@ public class Graphics {
 		  return currentFont;
 	  }
 	  
+	   static int distanceSq(int x1, int y1, int x2, int y2) {
+	    	x2 -= x1;
+	    	y2 -= y1;
+	    	return x2*x2+y2*y2;
+	        }
+	  
+	   void setLineDash(int a, int b) {
+	       setLineDash(context, a, b);
+	   }
+	   
+	   native static void setLineDash(Context2d context, int a, int b) /*-{
+	       if (a == 0)
+	           context.setLineDash([]);
+	       else
+	       	   context.setLineDash([a, b]);
+	   }-*/;
 }

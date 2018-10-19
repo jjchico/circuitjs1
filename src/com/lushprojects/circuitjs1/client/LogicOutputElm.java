@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class LogicOutputElm extends CircuitElm {
 	final int FLAG_TERNARY = 1;
 	final int FLAG_NUMERIC = 2;
@@ -97,6 +94,11 @@ package com.lushprojects.circuitjs1.client;
 		ei.checkbox = new Checkbox("Current Required", needsPullDown());
 		return ei;
 	    }
+	    if (n == 2) {
+		EditInfo ei = new EditInfo("", 0, 0, 0);
+		ei.checkbox = new Checkbox("Numeric", isNumeric());
+		return ei;
+	    }
 	    return null;
 	}
 	public void setEditValue(int n, EditInfo ei) {
@@ -108,12 +110,18 @@ package com.lushprojects.circuitjs1.client;
 		else
 		    flags &= ~FLAG_PULLDOWN;
 	    }
+	    if (n == 2) {
+		if (ei.checkbox.getState())
+		    flags |= FLAG_NUMERIC;
+		else
+		    flags &= ~FLAG_NUMERIC;
+	    }
 	}
 	int getShortcut() { return 'o'; }
 	
-    void drawHandles(Graphics g, Color c) {
-    	g.setColor(c);
-		g.fillRect(x-3, y-3, 7, 7);
-    }
+//    void drawHandles(Graphics g, Color c) {
+//    	g.setColor(c);
+//		g.fillRect(x-3, y-3, 7, 7);
+//    }
     
     }

@@ -19,6 +19,7 @@
 
 package com.lushprojects.circuitjs1.client;
 
+import java.util.Date;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
@@ -26,8 +27,7 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.TextBox;
-import com.google.gwt.user.client.ui.RichTextArea;
+import com.google.gwt.i18n.client.DateTimeFormat;
 
 public class ExportAsLocalFileDialog extends DialogBox {
 	
@@ -42,8 +42,12 @@ public class ExportAsLocalFileDialog extends DialogBox {
 	/*-{
 		var datain=[""];
 		datain[0]=data;
+		var oldblob = $doc.exportBlob;
+		if (oldblob)
+		    URL.revokeObjectURL(oldblob);
 		var blob=new Blob(datain, {type: 'text/plain' } );
 		var url = URL.createObjectURL(blob);
+		$doc.exportBlob = url;
 		return url;
 	}-*/;
 	
@@ -54,13 +58,16 @@ public class ExportAsLocalFileDialog extends DialogBox {
 		String url;
 		vp=new VerticalPanel();
 		setWidget(vp);
-		setText("Export as Local File");
-		vp.add(new Label("Click on the link below to save your circuit"));
+		setText(CirSim.LS("Export as Local File"));
+		vp.add(new Label(CirSim.LS("Click on the link below to save your circuit")));
 		url=getBlobUrl(data);
-		a=new Anchor("my circuit.txt", url);
-		a.getElement().setAttribute("Download", "my circuit.txt");
+		Date date = new Date();
+		DateTimeFormat dtf = DateTimeFormat.getFormat("yyyyMMdd-HHmm");
+		String fname = "circuit-"+ dtf.format(date) + ".circuitjs.txt";
+		a=new Anchor(fname, url);
+		a.getElement().setAttribute("Download", fname);
 		vp.add(a);
-		vp.add(okButton = new Button("OK"));
+		vp.add(okButton = new Button(CirSim.LS("OK")));
 		okButton.addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
 				closeDialog();

@@ -19,10 +19,7 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
 import java.util.Vector;
-import com.google.gwt.canvas.dom.client.TextMetrics;
 
 class TextElm extends GraphicElm {
     String text;
@@ -30,6 +27,7 @@ class TextElm extends GraphicElm {
     int size;
     final int FLAG_CENTER = 1;
     final int FLAG_BAR = 2;
+    final int FLAG_ESCAPE = 4;
     public TextElm(int xx, int yy) {
 	super(xx, yy);
 	text = "hello";
@@ -42,8 +40,15 @@ class TextElm extends GraphicElm {
 	super(xa, ya, xb, yb, f);
 	size = new Integer(st.nextToken()).intValue();
 	text = st.nextToken();
-	while (st.hasMoreTokens())
-	    text += ' ' + st.nextToken();
+	if ((flags & FLAG_ESCAPE) == 0) {
+	    // old-style dump before escape/unescape
+	    while (st.hasMoreTokens())
+		text += ' ' + st.nextToken();
+	    text=text.replaceAll("%2[bB]", "+");
+	} else {
+	    // new-style dump
+	    text = CustomLogicModel.unescape(text); 
+	}
 	split();
     }
     void split() {
@@ -66,7 +71,9 @@ class TextElm extends GraphicElm {
 	lines.add(sb.toString());
     }
     String dump() {
-	return super.dump() + " " + size + " " + text;
+	flags |= FLAG_ESCAPE;
+	return super.dump() + " " + size + " " + CustomLogicModel.escape(text);
+	//return super.dump() + " " + size + " " + text;
     }
     int getDumpType() { return 'x'; }
     void drag(int xx, int yy) {
@@ -96,6 +103,7 @@ class TextElm extends GraphicElm {
 	setBbox(x, y, x, y);
 	for (i = 0; i != lines.size(); i++) {
 	    String s = (String) (lines.elementAt(i));
+	    s = CirSim.LS(s);
 	    int sw=(int)g.context.measureText(s).getWidth();
 	    if ((flags & FLAG_CENTER) != 0)
 		x = (g.context.getCanvas().getWidth()-sw)/2;

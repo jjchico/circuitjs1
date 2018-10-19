@@ -19,8 +19,9 @@
 
 package com.lushprojects.circuitjs1.client;
 import com.google.gwt.user.client.ui.TextBox;
-
-//import java.awt.*;
+import com.google.gwt.user.client.ui.Anchor;
+import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.TextArea;
 
 class EditInfo {
 	EditInfo(String n, double val, double mn, double mx) {
@@ -41,6 +42,11 @@ class EditInfo {
 	}
 	
 	EditInfo setDimensionless() { dimensionless = true; return this; }
+	int changeFlag(int flags, int bit) {
+	    if (checkbox.getState())
+		return flags | bit;
+	    return flags & ~bit;
+	}
 	
 	String name, text;
 	double value, minval, maxval;
@@ -48,8 +54,18 @@ class EditInfo {
 	//    Scrollbar bar;
 	Choice choice;
 	Checkbox checkbox;
+	Button button;
+	TextArea textArea;
+	Anchor anchor;
 	boolean newDialog;
 	boolean forceLargeM;
 	boolean dimensionless;
+	
+	// for slider dialog
+	TextBox minBox, maxBox, labelBox;
+	
+	boolean canCreateAdjustable() {
+	    return choice == null && checkbox == null && button == null && textArea == null && anchor == null;
+	}
 }
     

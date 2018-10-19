@@ -19,19 +19,17 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class TransformerElm extends CircuitElm {
 	double inductance, ratio, couplingCoef;
 	Point ptEnds[], ptCoil[], ptCore[];
 	double current[], curcount[];
-	int width;
-	public static final int FLAG_BACK_EULER = 2;
+	Point dots[];
+	int width, polarity;
+	public static final int FLAG_REVERSE = 4;
 	public TransformerElm(int xx, int yy) {
 	    super(xx, yy);
 	    inductance = 4;
-	    ratio = 1;
+	    ratio = polarity = 1;
 	    width = 32;
 	    noDiagonal = true;
 	    couplingCoef = .999;
@@ -53,6 +51,7 @@ package com.lushprojects.circuitjs1.client;
 		couplingCoef = new Double(st.nextToken()).doubleValue();
 	    } catch (Exception e) { }
 	    noDiagonal = true;
+	    polarity = ((flags & FLAG_REVERSE) != 0) ? -1 : 1; 
 	}
 	void drag(int xx, int yy) {
 	    xx = sim.snapGrid(xx);
@@ -68,7 +67,7 @@ package com.lushprojects.circuitjs1.client;
 	    return super.dump() + " " + inductance + " " + ratio + " " +
 		current[0] + " " + current[1] + " " + couplingCoef;
 	}
-	boolean isTrapezoidal() { return (flags & FLAG_BACK_EULER) == 0; }
+	boolean isTrapezoidal() { return (flags & Inductor.FLAG_BACK_EULER) == 0; }
 	void draw(Graphics g) {
 	    int i;
 	    for (i = 0; i != 4; i++) {
@@ -77,11 +76,13 @@ package com.lushprojects.circuitjs1.client;
 	    }
 	    for (i = 0; i != 2; i++) {
 		setPowerColor(g, current[i]*(volts[i]-volts[i+2]));
-		drawCoil(g, dsign*(i == 1 ? -6 : 6), ptCoil[i], ptCoil[i+2], volts[i], volts[i+2]);
+		drawCoil(g, dsign*(i == 1 ? -6*polarity : 6), ptCoil[i], ptCoil[i+2], volts[i], volts[i+2]);
 	    }
 	    g.setColor(needsHighlight() ? selectColor : lightGrayColor);
 	    for (i = 0; i != 2; i++) {
 		drawThickLine(g, ptCore[i], ptCore[i+2]);
+		if (dots != null)
+		    g.fillOval(dots[i].x-2, dots[i].y-2, 5, 5);
 		curcount[i] = updateDotCount(current[i], curcount[i]);
 	    }
 	    for (i = 0; i != 2; i++) {
@@ -91,7 +92,7 @@ package com.lushprojects.circuitjs1.client;
 	    }
 	    
 	    drawPosts(g);
-	    setBbox(ptEnds[0], ptEnds[3], 0);
+	    setBbox(ptEnds[0], ptEnds[polarity == 1 ? 3 : 1], 0);
 	}
 	
 	void setPoints() {
@@ -113,14 +114,26 @@ package com.lushprojects.circuitjs1.client;
 		interpPoint(ptEnds[i], ptEnds[i+1], ptCore[i],   cd);
 		interpPoint(ptEnds[i], ptEnds[i+1], ptCore[i+1], 1-cd);
 	    }
+	    if (polarity == -1) {
+		dots = new Point[2];
+		double dotp = Math.abs(7./width);
+		dots[0] = interpPoint(ptCoil[0], ptCoil[2], dotp, -7*dsign);
+		dots[1] = interpPoint(ptCoil[3], ptCoil[1], dotp, -7*dsign);
+		Point x = ptEnds[1]; ptEnds[1] = ptEnds[3]; ptEnds[3] = x;
+		x = ptCoil[1]; ptCoil[1] = ptCoil[3]; ptCoil[3] = x;
+	    } else
+		dots = null;
 	}
 	Point getPost(int n) {
 	    return ptEnds[n];
 	}
 	int getPostCount() { return 4; }
 	void reset() {
+	    // need to set current-source values here in case one of the nodes is node 0.  In that case
+	    // calculateCurrent() may get called (from setNodeVoltage()) when analyzing circuit, before
+	    // startIteration() gets called
 	    current[0] = current[1] = volts[0] = volts[1] = volts[2] =
-		volts[3] = curcount[0] = curcount[1] = 0;
+		volts[3] = curcount[0] = curcount[1] = curSourceValue1 = curSourceValue2 = 0;
 	}
 	double a1, a2, a3, a4;
 	void stamp() {
@@ -192,6 +205,15 @@ package com.lushprojects.circuitjs1.client;
 	    current[0] = voltdiff1*a1 + voltdiff2*a2 + curSourceValue1;
 	    current[1] = voltdiff1*a3 + voltdiff2*a4 + curSourceValue2;
 	}
+	@Override double getCurrentIntoPoint(int xa, int ya) {
+	    if (xa == ptEnds[0].x && ya == ptEnds[0].y)
+		return -current[0];
+	    if (xa == ptEnds[2].x && ya == ptEnds[2].y)
+		return current[0];
+	    if (xa == ptEnds[1].x && ya == ptEnds[1].y)
+		return -current[1];
+	    return current[1];
+	}
 	void getInfo(String arr[]) {
 	    arr[0] = "transformer";
 	    arr[1] = "L = " + getUnitText(inductance, "H");
@@ -222,12 +244,18 @@ package com.lushprojects.circuitjs1.client;
 					   isTrapezoidal());
 		return ei;
 	    }
+	    if (n == 4) {
+		EditInfo ei = new EditInfo("", 0, -1, -1);
+		ei.checkbox = new Checkbox("Swap Secondary Polarity",
+					   polarity == -1);
+		return ei;
+	    }
 	    return null;
 	}
 	public void setEditValue(int n, EditInfo ei) {
-	    if (n == 0)
+	    if (n == 0 && ei.value > 0)
 		inductance = ei.value;
-	    if (n == 1)
+	    if (n == 1 && ei.value > 0)
 		ratio = ei.value;
 	    if (n == 2 && ei.value > 0 && ei.value < 1)
 		couplingCoef = ei.value;
@@ -237,5 +265,14 @@ package com.lushprojects.circuitjs1.client;
 		else
 		    flags |= Inductor.FLAG_BACK_EULER;
 	    }
+	    if (n == 4) {
+		polarity = (ei.checkbox.getState()) ? -1 : 1;
+		if (ei.checkbox.getState())
+		    flags |= FLAG_REVERSE;
+		else
+		    flags &= ~FLAG_REVERSE;
+		setPoints();
+	    }
 	}
+	int getShortcut() { return 'T'; }
     }

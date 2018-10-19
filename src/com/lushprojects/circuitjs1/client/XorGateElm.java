@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class XorGateElm extends OrGateElm {
 	public XorGateElm(int xx, int yy) { super(xx, yy); }
 	public XorGateElm(int xa, int ya, int xb, int yb, int f,
@@ -29,6 +26,7 @@ package com.lushprojects.circuitjs1.client;
 	    super(xa, ya, xb, yb, f, st);
 	}
 	String getGateName() { return "XOR gate"; }
+	String getGateText() { return "=1"; }
 	boolean calcFunction() {
 	    int i;
 	    boolean f = false;

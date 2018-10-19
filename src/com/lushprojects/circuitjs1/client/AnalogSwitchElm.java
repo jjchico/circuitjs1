@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
 class AnalogSwitchElm extends CircuitElm {
     final int FLAG_INVERT = 1;
     double resistance, r_on, r_off;
@@ -148,6 +145,22 @@ class AnalogSwitchElm extends CircuitElm {
 	    r_on = ei.value;
 	if (n == 2 && ei.value > 0)
 	    r_off = ei.value;
+    }
+    
+    double getCurrentIntoNode(int n) {
+	if (n==2)
+	    return 0;
+	if (n==0)
+	    return -current;
+	return current;
+    }  
+    
+    double getCurrentIntoPoint(int xa, int ya) {
+	if (xa==point3.x && ya==point3.y)
+	    return 0;
+	if (xa == x && ya == y)
+	    return -current;
+	return current;
     }
 }
 

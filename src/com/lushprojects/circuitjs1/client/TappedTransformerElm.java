@@ -19,11 +19,8 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class TappedTransformerElm extends CircuitElm {
-	double inductance, ratio;
+	double inductance, ratio, couplingCoef;
 	Point ptEnds[], ptCoil[], ptCore[];
 	double current[], curcount[];
 	public TappedTransformerElm(int xx, int yy) {
@@ -31,6 +28,7 @@ package com.lushprojects.circuitjs1.client;
 	    inductance = 4;
 	    ratio = 1;
 	    noDiagonal = true;
+	    couplingCoef = .99;
 	    current  = new double[4];
 	    curcount = new double[4];
 	    voltdiff = new double[3];
@@ -49,6 +47,10 @@ package com.lushprojects.circuitjs1.client;
 	    try {
 		current[2] = new Double(st.nextToken()).doubleValue();
 	    } catch (Exception e) { }
+	    couplingCoef = .99;
+	    try {
+		couplingCoef = new Double(st.nextToken()).doubleValue();
+	    } catch (Exception e) { }
 	    voltdiff = new double[3];
 	    curSourceValue = new double[3];
 	    noDiagonal = true;
@@ -57,7 +59,7 @@ package com.lushprojects.circuitjs1.client;
 	int getDumpType() { return 169; }
 	String dump() {
 	    return super.dump() + " " + inductance + " " + ratio + " " +
-		current[0] + " " + current[1] + " " + current[2];
+		current[0] + " " + current[1] + " " + current[2] + " " + couplingCoef;
 	}
 	void draw(Graphics g) {
 	    int i;
@@ -76,8 +78,6 @@ package com.lushprojects.circuitjs1.client;
 	    for (i = 0; i != 4; i += 2) {
 		drawThickLine(g, ptCore[i], ptCore[i+1]);
 	    }
-	    // calc current of tap wire
-	    current[3] = current[1]-current[2];
 	    for (i = 0; i != 4; i++)
 		curcount[i] = updateDotCount(current[i], curcount[i]);
 
@@ -127,8 +127,12 @@ package com.lushprojects.circuitjs1.client;
 	}
 	int getPostCount() { return 5; }
 	void reset() {
-	    current[0] = current[1] = volts[0] = volts[1] = volts[2] =
-		volts[3] = curcount[0] = curcount[1] = 0;
+	    current[0] = current[1] = current[2] = current[3] = volts[0] = volts[1] = volts[2] =
+		volts[3] = volts[4] = curcount[0] = curcount[1] = curcount[2] = 0;
+	    // need to set current-source values here in case one of the nodes is node 0.  In that case
+	    // calculateCurrent() may get called (from setNodeVoltage()) when analyzing circuit, before
+	    // startIteration() gets called
+	    curSourceValue[0] = curSourceValue[1] = curSourceValue[2] = 0;
 	}
 	double a[];
 	void stamp() {
@@ -157,20 +161,20 @@ package com.lushprojects.circuitjs1.client;
 	    // second winding is split in half, so each part has half the turns;
 	    // we square the 1/2 to divide by 4
 	    double l2 = inductance*ratio*ratio/4;
-	    double cc = .99;
-	    //double m1 = .999*Math.sqrt(l1*l2);
+	    double m1 = couplingCoef*Math.sqrt(l1*l2);
 	    // mutual inductance between two halves of the second winding
 	    // is equal to self-inductance of either half (slightly less
 	    // because the coupling is not perfect)
-	    //double m2 = .999*l2;
+	    double m2 = couplingCoef*l2;
 	    // load pre-inverted matrix
-	    a[0] = (1+cc)/(l1*(1+cc-2*cc*cc));
-	    a[1] = a[2] = a[3] = a[6] = 2*cc/((2*cc*cc-cc-1)*inductance*ratio);
-	    a[4] = a[8] = -4*(1+cc)/((2*cc*cc-cc-1)*l1*ratio*ratio);
-	    a[5] = a[7] = 4*cc/((2*cc*cc-cc-1)*l1*ratio*ratio);
+	    a[0] = l2+m2;
+	    a[1] = a[2] = a[3] = a[6] = -m1;
+	    a[4] = a[8] = (l1*l2-m1*m1)/(l2-m2);
+	    a[5] = a[7] = (m1*m1-l1*m2)/(l2-m2);
 	    int i;
+	    double det = l1*(l2+m2)-2*m1*m1;
 	    for (i = 0; i != 9; i++)
-		a[i] *= sim.timeStep/2;
+		a[i] *= (isTrapezoidal() ? sim.timeStep/2 : sim.timeStep)/det;
 	    sim.stampConductance(nodes[0], nodes[1], a[0]);
 	    sim.stampVCCurrentSource(nodes[0], nodes[1], nodes[2], nodes[3], a[1]);
 	    sim.stampVCCurrentSource(nodes[0], nodes[1], nodes[3], nodes[4], a[2]);
@@ -186,6 +190,7 @@ package com.lushprojects.circuitjs1.client;
 	    for (i = 0; i != 5; i++)
 		sim.stampRightSide(nodes[i]);
 	}
+	boolean isTrapezoidal() { return (flags & Inductor.FLAG_BACK_EULER) == 0; }
 	void startIteration() {
 	    voltdiff[0] = volts[0]-volts[1];
 	    voltdiff[1] = volts[2]-volts[3];
@@ -193,8 +198,9 @@ package com.lushprojects.circuitjs1.client;
 	    int i, j;
 	    for (i = 0; i != 3; i++) {
 		curSourceValue[i] = current[i];
-		for (j = 0; j != 3; j++)
-		    curSourceValue[i] += a[i*3+j]*voltdiff[j];
+		if (isTrapezoidal())
+		    for (j = 0; j != 3; j++)
+			curSourceValue[i] += a[i*3+j]*voltdiff[j];
 	    }
 	}
 	double curSourceValue[], voltdiff[];
@@ -213,6 +219,8 @@ package com.lushprojects.circuitjs1.client;
 		for (j = 0; j != 3; j++)
 		    current[i] += a[i*3+j]*voltdiff[j];
 	    }
+	    // calc current of tap wire
+	    current[3] = current[1]-current[2];
 	}
 	void getInfo(String arr[]) {
 	    arr[0] = "transformer";
@@ -222,6 +230,17 @@ package com.lushprojects.circuitjs1.client;
 	    arr[3] = "Vd1 = " + getVoltageText(volts[0]-volts[2]);
 	    //arr[5] = "I2 = " + getCurrentText(current2);
 	    arr[4] = "Vd2 = " + getVoltageText(volts[1]-volts[3]);
+	}
+	@Override double getCurrentIntoPoint(int xa, int ya) {
+	    if (xa == ptEnds[0].x && ya == ptEnds[0].y)
+		return -current[0];
+	    if (xa == ptEnds[1].x && ya == ptEnds[1].y)
+		return current[0];
+	    if (xa == ptEnds[2].x && ya == ptEnds[2].y)
+		return -current[1];
+	    if (xa == ptEnds[3].x && ya == ptEnds[3].y)
+		return current[3];
+	    return current[2];
 	}
 	boolean getConnection(int n1, int n2) {
 	    if (comparePair(n1, n2, 0, 1))
@@ -239,12 +258,28 @@ package com.lushprojects.circuitjs1.client;
 		return new EditInfo("Primary Inductance (H)", inductance, .01, 5);
 	    if (n == 1)
 		return new EditInfo("Ratio", ratio, 1, 10).setDimensionless();
+	    if (n == 2)
+		return new EditInfo("Coupling Coefficient", couplingCoef, 0, 1).setDimensionless();
+	    if (n == 3) {
+		EditInfo ei = new EditInfo("", 0, -1, -1);
+		ei.checkbox = new Checkbox("Trapezoidal Approximation",
+					   isTrapezoidal());
+		return ei;
+	    }
 	    return null;
 	}
 	public void setEditValue(int n, EditInfo ei) {
-	    if (n == 0)
+	    if (n == 0 && ei.value > 0)
 		inductance = ei.value;
-	    if (n == 1)
+	    if (n == 1 && ratio > 0)
 		ratio = ei.value;
+	    if (n == 2 && ei.value > 0 && ei.value < 1)
+		couplingCoef = ei.value;
+	    if (n == 3) {
+		if (ei.checkbox.getState())
+		    flags &= ~Inductor.FLAG_BACK_EULER;
+		else
+		    flags |= Inductor.FLAG_BACK_EULER;
+	    }
 	}
     }

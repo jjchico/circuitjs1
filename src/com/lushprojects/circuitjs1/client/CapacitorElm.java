@@ -19,11 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
-
-
     class CapacitorElm extends CircuitElm {
 	double capacitance;
 	double compResistance, voltdiff;
@@ -45,7 +40,8 @@ package com.lushprojects.circuitjs1.client;
 	    voltdiff = volts[0]-volts[1];
 	}
 	void reset() {
-	    current = curcount = 0;
+	    super.reset();
+	    current = curcount = curSourceValue = 0;
 	    // put small charge on caps when reset to start oscillators
 	    voltdiff = 1e-3;
 	}
@@ -53,6 +49,9 @@ package com.lushprojects.circuitjs1.client;
 	String dump() {
 	    return super.dump() + " " + capacitance + " " + voltdiff;
 	}
+	
+	Point platePoints[];
+	
 	void setPoints() {
 	    super.setPoints();
 	    double f = (dn/2-4)/dn;
@@ -82,7 +81,13 @@ package com.lushprojects.circuitjs1.client;
 	    setVoltageColor(g, volts[1]);
 	    drawThickLine(g, point2, lead2);
 	    setPowerColor(g, false);
-	    drawThickLine(g, plate2[0], plate2[1]);
+	    if (platePoints == null)
+		drawThickLine(g, plate2[0], plate2[1]);
+	    else {
+		int i;
+		for (i = 0; i != 7; i++)
+		    drawThickLine(g,  platePoints[i], platePoints[i+1]);
+	    }
 	    
 	    updateDotCount();
 	    if (sim.dragElm != this) {
@@ -96,6 +101,13 @@ package com.lushprojects.circuitjs1.client;
 	    }
 	}
 	void stamp() {
+	    if (sim.dcAnalysisFlag) {
+		// when finding DC operating point, replace cap with a 100M resistor
+		sim.stampResistor(nodes[0], nodes[1], 1e8);
+		curSourceValue = 0;
+		return;
+	    }
+	    
 	    // capacitor companion model using trapezoidal approximation
 	    // (Norton equivalent) consists of a current source in
 	    // parallel with a resistor.  Trapezoidal is more accurate
@@ -114,10 +126,13 @@ package com.lushprojects.circuitjs1.client;
 		curSourceValue = -voltdiff/compResistance-current;
 	    else
 		curSourceValue = -voltdiff/compResistance;
-	    //System.out.println("cap " + compResistance + " " + curSourceValue + " " + current + " " + voltdiff);
 	}
 	void calculateCurrent() {
 	    double voltdiff = volts[0] - volts[1];
+	    if (sim.dcAnalysisFlag) {
+		current = voltdiff/1e8;
+		return;
+	    }
 	    // we check compResistance because this might get called
 	    // before stamp(), which sets compResistance, causing
 	    // infinite current
@@ -126,6 +141,8 @@ package com.lushprojects.circuitjs1.client;
 	}
 	double curSourceValue;
 	void doStep() {
+	    if (sim.dcAnalysisFlag)
+		return;
 	    sim.stampCurrentSource(nodes[0], nodes[1], curSourceValue);
  	}
 	void getInfo(String arr[]) {
@@ -135,6 +152,10 @@ package com.lushprojects.circuitjs1.client;
 	    arr[4] = "P = " + getUnitText(getPower(), "W");
 	    //double v = getVoltageDiff();
 	    //arr[4] = "U = " + getUnitText(.5*capacitance*v*v, "J");
+	}
+	@Override
+	String getScopeText(int v) {
+	    return sim.LS("capacitor") + ", " + getUnitText(capacitance, "F");
 	}
 	public EditInfo getEditInfo(int n) {
 	    if (n == 0)

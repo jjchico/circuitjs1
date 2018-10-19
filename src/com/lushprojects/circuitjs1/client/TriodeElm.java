@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
 class TriodeElm extends CircuitElm {
     double mu, kg1;
     double curcountp, curcountc, curcountg, currentp, currentg, currentc;
@@ -88,18 +85,20 @@ class TriodeElm extends CircuitElm {
 	drawThickCircle(g, point2.x, point2.y, circler);
 	setBbox(point1, plate[0], 16);
 	adjustBbox(cath[0].x, cath[1].y, point2.x+circler, point2.y+circler);
-	setPowerColor(g, true);
 	// draw plate
 	setVoltageColor(g, volts[0]);
+	setPowerColor(g, currentp*(volts[0]-volts[2]));
 	drawThickLine(g, plate[0], plate[1]);
 	drawThickLine(g, plate[2], plate[3]);
 	// draw grid
 	setVoltageColor(g, volts[1]);
+	setPowerColor(g, currentg*(volts[1]-volts[2]));
 	int i;
 	for (i = 0; i != 8; i += 2)
 	    drawThickLine(g, grid[i], grid[i+1]);
 	// draw cathode
 	setVoltageColor(g, volts[2]);
+	setPowerColor(g, 0);
 	for (i = 0; i != 3; i++)
 	    drawThickLine(g, cath[i], cath[i+1]);
 	// draw dots
@@ -115,6 +114,15 @@ class TriodeElm extends CircuitElm {
 	}
 	drawPosts(g);
     }
+    
+    double getCurrentIntoPoint(int xa, int ya) {
+	if (xa == cath[0].x && ya == cath[0].y)
+	    return currentc;
+	if (xa == plate[0].x && ya == plate[0].y)
+	    return -currentp;
+	return -currentg;
+    }
+
     Point getPost(int n) {
 	return (n == 0) ? plate[0] : (n == 1) ? grid[0] : cath[0];
     }
@@ -155,7 +163,8 @@ class TriodeElm extends CircuitElm {
 	if (vgk > .01) {
 	    sim.stampResistor(nodes[grid], nodes[cath], gridCurrentR);
 	    currentg = vgk/gridCurrentR;
-	}
+	} else
+	    sim.stampResistor(nodes[grid], nodes[cath], 1e8); // avoid singular matrix 
 	if (ival < 0) {
 	    // should be all zero, but that causes a singular matrix,
 	    // so instead we treat it as a large resistor
@@ -200,5 +209,18 @@ class TriodeElm extends CircuitElm {
     }
     // grid not connected to other terminals
     boolean getConnection(int n1, int n2) { return !(n1 == 1 || n2 == 1); }
+    public EditInfo getEditInfo(int n) {
+	if (n == 0)
+	    return new EditInfo("mu", mu, 0, 0).setDimensionless();
+	if (n == 1)
+	    return new EditInfo("kg1", kg1, 0, 0).setDimensionless();
+	return null;
+    }
+    public void setEditValue(int n, EditInfo ei) {
+	if (n == 0 && ei.value > 0)
+	    mu = ei.value;
+	if (n == 1 && ei.value > 0)
+	    kg1 = ei.value;
+    }
 }
 

@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
 // Silicon-Controlled Rectifier
 // 3 nodes, 1 internal node
 // 0 = anode, 1 = cathode, 2 = gate
@@ -115,6 +112,8 @@ class SCRElm extends CircuitElm {
 	}
 	interpPoint(lead2, point2, gate[0], gatelen/leadlen, gatelen*dir);
 	interpPoint(lead2, point2, gate[1], gatelen/leadlen, sim.gridSize*2*dir);
+	gate[1].x = sim.snapGrid(gate[1].x);
+	gate[1].y = sim.snapGrid(gate[1].y);
     }
 	
     void draw(Graphics g) {
@@ -150,6 +149,14 @@ class SCRElm extends CircuitElm {
 	drawPosts(g);
     }
 	
+    @Override double getCurrentIntoPoint(int xa, int ya) {
+	if (xa == point1.x && ya == point1.y)
+	    return -ia;
+	if (xa == point2.x && ya == point2.y)
+	    return -ic;
+	return -ig;
+    }
+
     
     Point getPost(int n) {
 	return (n == 0) ? point1 : (n == 1) ? point2 : gate[1];

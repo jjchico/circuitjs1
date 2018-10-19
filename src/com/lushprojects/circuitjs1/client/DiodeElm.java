@@ -19,19 +19,17 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
 class DiodeElm extends CircuitElm {
     Diode diode;
     static final int FLAG_FWDROP = 1;
     final double defaultdrop = .805904783;
     double fwdrop, zvoltage;
+    static double lastFwdrop;
     
     public DiodeElm(int xx, int yy) {
 	super(xx, yy);
 	diode = new Diode(sim);
-	fwdrop = defaultdrop;
+	fwdrop = lastFwdrop == 0 ? defaultdrop : lastFwdrop;
 	zvoltage = 0;
 	setup();
     }
@@ -126,7 +124,20 @@ class DiodeElm extends CircuitElm {
     } 
     public void setEditValue(int n, EditInfo ei) {
 	fwdrop = ei.value;
+	
+	// save diode drop value for next time we create a diode
+	if (!(this instanceof LEDElm))
+	    lastFwdrop = fwdrop;
+	
 	setup();
     }
     int getShortcut() { return 'd'; }
+    
+    void stepFinished() {
+        // stop for huge currents that make simulator act weird
+        if (Math.abs(current) > 1e12)
+            sim.stop("max current exceeded", this);
+    }
+
+
 }

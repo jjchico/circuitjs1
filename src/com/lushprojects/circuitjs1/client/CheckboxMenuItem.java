@@ -21,7 +21,6 @@ package com.lushprojects.circuitjs1.client;
 
 import com.google.gwt.user.client.ui.MenuItem;
 import com.google.gwt.user.client.Command;
-import com.google.gwt.core.client.GWT;
 
 public class CheckboxMenuItem extends MenuItem implements Command {
 	private boolean on=false;
@@ -68,6 +67,10 @@ public class CheckboxMenuItem extends MenuItem implements Command {
         	
       }
 
+	public void setTitle(String s) {
+	    	name = s;
+	}
+	
 	public void setState(boolean newstate) {
 		on = newstate;
 		String s;
@@ -78,10 +81,13 @@ public class CheckboxMenuItem extends MenuItem implements Command {
 //        	super.setHTML("&emsp;&nbsp;"+name);
         	s = checkBoxHtml+"&nbsp;</div>"+name;
         if (shortcut!="")
-        	if (shortcut.length()==1)
-        		s = s + "<div style=\"display:inline-block;width:20px;right:10px;text-align:center;position:absolute;\">"+shortcut+"</div>";
-        	else
-        		s = s + "<div style=\"display:inline-block;right:10px;text-align:right;position:absolute;\">"+shortcut+"</div>";
+        	if (shortcut.length()==1) {
+        	    s = s + "<div style=\"display:inline-block;width:20px;right:10px;text-align:center;position:absolute;\">"+shortcut+"</div>";
+        	} else {
+        	    // add some space so menu text doesn't overlap shortcut
+        	    s = s+ "<span style=\"display:inline-block; width: 60px;\"></span>";
+        	    s = s + "<div style=\"display:inline-block;right:10px;text-align:right;position:absolute;\">"+shortcut+"</div>";
+        	}
         setHTML(s);
 	}
 	

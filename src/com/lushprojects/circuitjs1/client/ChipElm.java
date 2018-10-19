@@ -19,11 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
-import com.google.gwt.canvas.dom.client.TextMetrics;
-
     abstract class ChipElm extends CircuitElm {
 	int csize, cspc, cspc2;
 	int bits;
@@ -48,7 +43,9 @@ import com.google.gwt.canvas.dom.client.TextMetrics;
 	    setSize((f & FLAG_SMALL) != 0 ? 1 : 2);
 	    int i;
 	    for (i = 0; i != getPostCount(); i++) {
-		if (pins[i].state) {
+		if (pins == null)
+		    volts[i] = new Double(st.nextToken()).doubleValue();
+		else if (pins[i].state) {
 		    volts[i] = new Double(st.nextToken()).doubleValue();
 		    pins[i].value = volts[i] > 2.5;
 		}
@@ -102,8 +99,7 @@ import com.google.gwt.canvas.dom.client.TextMetrics;
 	    drawThickPolygon(g, rectPointsX, rectPointsY, 4);
 	    if (clockPointsX != null)
 		g.drawPolyline(clockPointsX, clockPointsY, 3);
-	    for (i = 0; i != getPostCount(); i++)
-		drawPost(g, pins[i].post.x, pins[i].post.y, nodes[i]);
+	    drawPosts(g);
 	    g.setFont(oldfont);
 	}
 	int rectPointsX[], rectPointsY[];
@@ -122,6 +118,7 @@ import com.google.gwt.canvas.dom.client.TextMetrics;
 	    setPoints();
 	}
 	void setPoints() {
+	    clockPointsX = null;
 	    if (x2-x > sizeX*cspc2 && this == sim.dragElm)
 		setSize(2);
 	    int hs = cspc;
@@ -194,7 +191,6 @@ import com.google.gwt.canvas.dom.client.TextMetrics;
 	}
 	
 	String dump() {
-	    int t = getDumpType();
 	    String s = super.dump();
 	    if (needsBits())
 		s += " " + bits;
@@ -235,6 +231,14 @@ import com.google.gwt.canvas.dom.client.TextMetrics;
 	boolean getConnection(int n1, int n2) { return false; }
 	boolean hasGroundConnection(int n1) {
 	    return pins[n1].output;
+	}
+	
+	double getCurrentIntoPoint(int xa, int ya) {
+	    int i;
+	    for (i = 0; i != getPostCount(); i++)
+		if (pins[i].post.x == xa && pins[i].post.y == ya)
+		    return pins[i].current;
+	    return 0;
 	}
 	
 	public EditInfo getEditInfo(int n) {

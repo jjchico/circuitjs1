@@ -19,15 +19,13 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class LEDElm extends DiodeElm {
-	double colorR, colorG, colorB;
+	double colorR, colorG, colorB, maxBrightnessCurrent;
 	public LEDElm(int xx, int yy) {
 	    super(xx, yy);
 	    fwdrop = 2.1024259;
 	    setup();
+	    maxBrightnessCurrent = .01;
 	    colorR = 1; colorG = colorB = 0;
 	}
 	public LEDElm(int xa, int ya, int xb, int yb, int f,
@@ -39,10 +37,15 @@ package com.lushprojects.circuitjs1.client;
 	    colorR = new Double(st.nextToken()).doubleValue();
 	    colorG = new Double(st.nextToken()).doubleValue();
 	    colorB = new Double(st.nextToken()).doubleValue();
+	    maxBrightnessCurrent = .01;
+	    try {
+		maxBrightnessCurrent = new Double(st.nextToken()).doubleValue();
+	    } catch (Exception e) { }
 	}
 	int getDumpType() { return 162; }
 	String dump() {
-	    return super.dump() + " " + colorR + " " + colorG + " " + colorB;
+	    return super.dump() + " " + colorR + " " + colorG + " " + colorB + " " +
+		    maxBrightnessCurrent;
 	}
 
 	Point ledLead1, ledLead2, ledCenter;
@@ -68,9 +71,13 @@ package com.lushprojects.circuitjs1.client;
 	    int cr = 12;
 	    drawThickCircle(g, ledCenter.x, ledCenter.y, cr);
 	    cr -= 4;
-	    double w = 255*current/.01;
+	    double w = current/maxBrightnessCurrent;
+	    if (w > 0)
+		w = 255*(1+.2*Math.log(w));
 	    if (w > 255)
 		w = 255;
+	    if (w < 0)
+		w = 0;
 	    Color cc = new Color((int) (colorR*w), (int) (colorG*w),
 				 (int) (colorB*w));
 	    g.setColor(cc);
@@ -99,6 +106,8 @@ package com.lushprojects.circuitjs1.client;
 	    if (n == 3)
 		return new EditInfo("Blue Value (0-1)", colorB, 0, 1).
 		    setDimensionless();
+	    if (n == 4)
+		return new EditInfo("Max Brightness Current (A)", maxBrightnessCurrent, 0, .1);
 	    return null;
 	}
 	public void setEditValue(int n, EditInfo ei) {
@@ -110,6 +119,8 @@ package com.lushprojects.circuitjs1.client;
 		colorG = ei.value;
 	    if (n == 3)
 		colorB = ei.value;
+	    if (n == 4)
+		maxBrightnessCurrent = ei.value;
 	}
 	int getShortcut() { return 'l'; }
     }

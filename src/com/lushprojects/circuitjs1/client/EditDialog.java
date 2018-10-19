@@ -21,6 +21,7 @@ package com.lushprojects.circuitjs1.client;
 
 
 import com.google.gwt.user.client.ui.DialogBox;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -33,15 +34,8 @@ import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.event.logical.shared.ValueChangeEvent;
-import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.shared.GwtEvent;
-import com.google.gwt.user.client.ui.Widget;
-import java.util.Iterator;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
-//import java.awt.*;
-//import java.awt.event.*;
-//import java.text.NumberFormat;
-//import java.text.DecimalFormat;
 
 interface Editable {
     EditInfo getEditInfo(int n);
@@ -58,19 +52,18 @@ class EditDialog extends DialogBox  {
 	final int barmax = 1000;
 	VerticalPanel vp;
 	HorizontalPanel hp;
-	NumberFormat noCommaFormat;
+	static NumberFormat noCommaFormat = NumberFormat.getFormat("####.##########");
 
 	EditDialog(Editable ce, CirSim f) {
 //		super(f, "Edit Component", false);
 		super(); // Do we need this?
-		setText("Edit Component");
+		setText(CirSim.LS("Edit Component"));
 		cframe = f;
 		elm = ce;
 //		setLayout(new EditDialogLayout());
 		vp=new VerticalPanel();
 		setWidget(vp);
 		einfos = new EditInfo[10];
-		noCommaFormat=NumberFormat.getFormat("####.##########");
 //		noCommaFormat = DecimalFormat.getInstance();
 //		noCommaFormat.setMaximumFractionDigits(10);
 //		noCommaFormat.setGroupingUsed(false);
@@ -79,13 +72,13 @@ class EditDialog extends DialogBox  {
 		hp.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_LEFT);
 		hp.setStyleName("topSpace");
 		vp.add(hp);
-		hp.add(applyButton = new Button("Apply"));
+		hp.add(applyButton = new Button(CirSim.LS("Apply")));
 		applyButton.addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
 				apply();
 			}
 		});
-		hp.add(okButton = new Button("OK"));
+		hp.add(okButton = new Button(CirSim.LS("OK")));
 		okButton.addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
 				apply();
@@ -93,7 +86,7 @@ class EditDialog extends DialogBox  {
 			}
 		});
 		hp.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
-		hp.add(cancelButton = new Button("Cancel"));
+		hp.add(cancelButton = new Button(CirSim.LS("Cancel")));
 		cancelButton.addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
 				closeDialog();
@@ -106,15 +99,19 @@ class EditDialog extends DialogBox  {
 	void buildDialog() {
 		int i;
 		int idx;
-		Label l;
 		for (i = 0; ; i++) {
+			Label l = null;
 			einfos[i] = elm.getEditInfo(i);
 			if (einfos[i] == null)
 				break;
 			EditInfo ei = einfos[i];
 			idx = vp.getWidgetIndex(hp);
-			vp.insert(l = new Label(ei.name),idx);
-			if (i!=0)
+			String name = CirSim.LS(ei.name);
+			if (ei.name.startsWith("<"))
+			    vp.insert(l = new HTML(name),idx);
+			else
+			    vp.insert(l = new Label(name),idx);
+			if (i!=0 && l != null)
 				l.setStyleName("topSpace");
 			idx = vp.getWidgetIndex(hp);
 			if (ei.choice != null) {
@@ -124,7 +121,6 @@ class EditDialog extends DialogBox  {
 						itemStateChanged(e);
 					}
 				});
-//				ei.choice.addItemListener(this);
 			} else if (ei.checkbox != null) {
 				vp.insert(ei.checkbox,idx);
 				ei.checkbox.addValueChangeHandler( new ValueChangeHandler<Boolean>() {
@@ -132,19 +128,22 @@ class EditDialog extends DialogBox  {
 						itemStateChanged(e);
 					}
 				});
-//				ei.checkbox.addItemListener(this);
+			} else if (ei.button != null) {
+			    vp.insert(ei.button, idx);
+			    ei.button.addClickHandler( new ClickHandler() {
+				public void onClick(ClickEvent event) {
+				    itemStateChanged(event);
+				}
+			    });
+			} else if (ei.textArea != null) {
+			    vp.insert(ei.textArea, idx);
+			} else if (ei.anchor != null) {
+			    vp.insert(ei.anchor, idx);
 			} else {
-				vp.insert(ei.textf =
-					//	new TextBox(unitString(ei), 10));
-						new TextBox(), idx);
+				vp.insert(ei.textf = new TextBox(), idx);
 				if (ei.text != null)
 					ei.textf.setText(ei.text);
-//				ei.textf.addActionListener(this);
 				if (ei.text == null) {
-//					add(ei.bar = new Scrollbar(Scrollbar.HORIZONTAL,
-//							50, 10, 0, barmax+2));
-//					setBar(ei);
-//					ei.bar.addAdjustmentListener(this);
 					ei.textf.setText(unitString(ei));
 				}
 			}
@@ -152,8 +151,22 @@ class EditDialog extends DialogBox  {
 		einfocount = i;
 	}
 
+	static final double ROOT2 = 1.41421356237309504880;
+	
+	double diffFromInteger(double x) {
+	    return Math.abs(x-Math.round(x));
+	}
+	
 	String unitString(EditInfo ei) {
-		double v = ei.value;
+	    // for voltage elements, express values in rms if that would be shorter
+	    if (elm != null && elm instanceof VoltageElm &&
+		Math.abs(ei.value) > 1e-4 &&
+		diffFromInteger(ei.value*1e4) > diffFromInteger(ei.value*1e4/ROOT2))
+		return unitString(ei, ei.value/ROOT2) + "rms";
+	    return unitString(ei, ei.value);
+	}
+
+	static String unitString(EditInfo ei, double v) {
 		double va = Math.abs(v);
 		if (ei.dimensionless)
 			return noCommaFormat.format(v);
@@ -177,7 +190,16 @@ class EditDialog extends DialogBox  {
 
 	double parseUnits(EditInfo ei) throws java.text.ParseException {
 		String s = ei.textf.getText();
+		return parseUnits(ei, s);
+	}
+	
+	static double parseUnits(EditInfo ei, String s) throws java.text.ParseException {
 		s = s.trim();
+		double rmsMult = 1;
+		if (s.endsWith("rms")) {
+		    s = s.substring(0, s.length()-3).trim();
+		    rmsMult = ROOT2;
+		}
 		// rewrite shorthand (eg "2k2") in to normal format (eg 2.2k) using regex
 		s=s.replaceAll("([0-9]+)([pPnNuUmMkKgG])([0-9]+)", "$1.$3$2");
 		int len = s.length();
@@ -197,127 +219,65 @@ class EditDialog extends DialogBox  {
 		}
 		if (mult != 1)
 			s = s.substring(0, len-1).trim();
-		return noCommaFormat.parse(s) * mult;
+		return noCommaFormat.parse(s) * mult * rmsMult;
 	}
 
 	void apply() {
 		int i;
 		for (i = 0; i != einfocount; i++) {
 			EditInfo ei = einfos[i];
-//			if (ei.textf == null)
-//				continue;
-//			if (ei.text == null) {
 			if (ei.textf!=null && ei.text==null) {
 				try {
 					double d = parseUnits(ei);
 					ei.value = d;
 				} catch (Exception ex) { /* ignored */ }
 			}
+			if (ei.button != null)
+			    continue;
 			elm.setEditValue(i, ei);
-
-//			if (ei.text == null)
-//				setBar(ei);
+			
+			// update slider if any
+			if (elm instanceof CircuitElm) {
+			    Adjustable adj = cframe.findAdjustable((CircuitElm)elm, i);
+			    if (adj != null)
+				adj.setSliderValue(ei.value);
+			}
 		}
 		cframe.needAnalyze();
 	}
 
-//	public void actionPerformed(ActionEvent e) {
-//		int i;
-//		Object src = e.getSource();
-//		for (i = 0; i != einfocount; i++) {
-//			EditInfo ei = einfos[i];
-//			if (src == ei.textf) {
-//				if (ei.text == null) {
-//					try {
-//						double d = parseUnits(ei);
-//						ei.value = d;
-//					} catch (Exception ex) { /* ignored */ }
-//				}
-//				elm.setEditValue(i, ei);
-//				if (ei.text == null)
-//					setBar(ei);
-//				cframe.needAnalyze();
-//			}
-//		}
-//		if (e.getSource() == okButton) {
-//			apply();
-//			closeDialog();
-//		}
-//		if (e.getSource() == applyButton)
-//			apply();
-//	}
-//
-//	public void adjustmentValueChanged(AdjustmentEvent e) {
-//		Object src = e.getSource();
-//		int i;
-//		for (i = 0; i != einfocount; i++) {
-//			EditInfo ei = einfos[i];
-//			if (ei.bar == src) {
-//				double v = ei.bar.getValue() / 1000.;
-//				if (v < 0)
-//					v = 0;
-//				if (v > 1)
-//					v = 1;
-//				ei.value = (ei.maxval-ei.minval)*v + ei.minval;
-//				/*if (ei.maxval-ei.minval > 100)
-//		    ei.value = Math.round(ei.value);
-//		else
-//		ei.value = Math.round(ei.value*100)/100.;*/
-//				ei.value = Math.round(ei.value/ei.minval)*ei.minval;
-//				elm.setEditValue(i, ei);
-//				ei.textf.setText(unitString(ei));
-//				cframe.needAnalyze();
-//			}
-//		}
-//	}
-//
 	public void itemStateChanged(GwtEvent e) {
-		Object src = e.getSource();
-		int i;
-		boolean changed = false;
-		for (i = 0; i != einfocount; i++) {
-			EditInfo ei = einfos[i];
-			if (ei.choice == src || ei.checkbox == src) {
-				elm.setEditValue(i, ei);
-				if (ei.newDialog)
-					changed = true;
-				cframe.needAnalyze();
-			}
+	    Object src = e.getSource();
+	    int i;
+	    boolean changed = false;
+	    for (i = 0; i != einfocount; i++) {
+		EditInfo ei = einfos[i];
+		if (ei.choice == src || ei.checkbox == src || ei.button == src) {
+		    
+		    // if we're pressing a button, make sure to apply changes first
+		    if (ei.button == src)
+			apply();
+		    
+		    elm.setEditValue(i, ei);
+		    if (ei.newDialog)
+			changed = true;
+		    cframe.needAnalyze();
 		}
-		if (changed) {
-		//	apply();
-//			setVisible(false);
-//			cframe.editDialog = new EditDialog(elm, cframe);
-//			cframe.editDialog.show();
-			clearDialog();
-			buildDialog();
-		}
+	    }
+	    if (changed) {
+		// apply changes before we reset everything
+		apply();
+		
+		clearDialog();
+		buildDialog();
+	    }
 	}
 	
 	public void clearDialog() {
-//		Iterator<Widget> wa = vp.iterator();
-//		while (wa.hasNext()){
-//			Widget w=wa.next();
-//			if (w!=hp)
-//				vp.remove(w);
-//		}
 		while (vp.getWidget(0)!=hp)
 			vp.remove(0);
 	}
-//
-//	public boolean handleEvent(Event ev) {
-//		if (ev.id == Event.WINDOW_DESTROY) {
-//			closeDialog();
-//			return true;
-//		}
-//		return super.handleEvent(ev);
-//	}
-//
-//	void setBar(EditInfo ei) {
-//		int x = (int) (barmax*(ei.value-ei.minval)/(ei.maxval-ei.minval));
-//		ei.bar.setValue(x);
-//	}
-//
+	
 	protected void closeDialog()
 	{
 		EditDialog.this.hide();

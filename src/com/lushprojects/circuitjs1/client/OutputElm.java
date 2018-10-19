@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class OutputElm extends CircuitElm {
 	final int FLAG_VALUE = 1;
 	public OutputElm(int xx, int yy) { super(xx, yy); }
@@ -36,7 +33,7 @@ package com.lushprojects.circuitjs1.client;
 	    lead1 = new Point();
 	}
 	void draw(Graphics g) {
-	    boolean selected = (needsHighlight() || sim.plotYElm == this);
+	    boolean selected = needsHighlight();
 	    Font f = new Font("SansSerif", selected ? Font.BOLD : 0, 14);
 	    g.setFont(f);
 	    g.setColor(selected ? selectColor : whiteColor);
@@ -76,9 +73,9 @@ package com.lushprojects.circuitjs1.client;
 		    (flags & ~FLAG_VALUE);
 	}
 	
-    void drawHandles(Graphics g, Color c) {
-    	g.setColor(c);
-		g.fillRect(x-3, y-3, 7, 7);
-    }
+//    void drawHandles(Graphics g, Color c) {
+//    	g.setColor(c);
+//		g.fillRect(x-3, y-3, 7, 7);
+//    }
     
     }

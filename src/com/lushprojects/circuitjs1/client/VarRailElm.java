@@ -19,8 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.event.dom.client.MouseWheelEvent;
 import com.google.gwt.event.dom.client.MouseWheelHandler;
@@ -41,15 +39,16 @@ import com.google.gwt.event.dom.client.MouseWheelHandler;
 	    sliderText = st.nextToken();
 	    while (st.hasMoreTokens())
 		sliderText += ' ' + st.nextToken();
+	    sliderText=sliderText.replaceAll("%2[bB]", "+");
 	    createSlider();
 	}
 	String dump() {
-	    return super.dump() + " " + sliderText;
+	    return super.dump() + " " + sliderText.replaceAll("\\+","%2B");
 	}
 	int getDumpType() { return 172; }
 	void createSlider() {
 	    waveform = WF_VAR;
-	    sim.addWidgetToVerticalPanel(label = new Label(sliderText));
+	    sim.addWidgetToVerticalPanel(label = new Label(sim.LS(sliderText)));
 	    label.addStyleName("topSpace");
 	    int value = (int) ((frequency-bias)*100/(maxVoltage-bias));
 	    sim.addWidgetToVerticalPanel(slider = new Scrollbar(Scrollbar.HORIZONTAL, value, 1, 0, 101 ,
@@ -63,6 +62,7 @@ import com.google.gwt.event.dom.client.MouseWheelHandler;
 	void delete() {
 	    sim.removeWidgetFromVerticalPanel(label);
 	    sim.removeWidgetFromVerticalPanel(slider);
+            super.delete();
 	}
 	public EditInfo getEditInfo(int n) {
 	    if (n == 0)
@@ -83,7 +83,7 @@ import com.google.gwt.event.dom.client.MouseWheelHandler;
 		maxVoltage = ei.value;
 	    if (n == 2) {
 		sliderText = ei.textf.getText();
-		label.setText(sliderText);
+		label.setText(sim.LS(sliderText));
 		sim.setiFrameHeight();
 	    }
 	}

@@ -40,7 +40,7 @@ package com.lushprojects.circuitjs1.client;
 	    doDots(g);
 	    interpPoint(point1, point2, ps2, 1+11./dn);
 	    setBbox(point1, ps2, 11);
-	    drawPost(g, x, y, nodes[0]);
+	    drawPosts(g);
 	}
 	void setCurrent(int x, double c) { current = -c; }
 	void stamp() {
@@ -54,4 +54,8 @@ package com.lushprojects.circuitjs1.client;
 	}
 	boolean hasGroundConnection(int n1) { return true; }
 	int getShortcut() { return 'g'; }
+	
+	@Override double getCurrentIntoNode(int n) { return -current; }
+	
+	@Override double getCurrentIntoPoint(int xa, int ya) { return -current; }
     }

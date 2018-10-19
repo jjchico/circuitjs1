@@ -24,14 +24,9 @@ import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.core.shared.GWT;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.TextBox;
-import com.google.gwt.user.client.ui.RichTextArea;
-import com.google.gwt.safehtml.shared.SafeHtmlUtils;
-import com.google.gwt.safehtml.shared.SafeHtml;
 
 public class ImportFromTextDialog extends DialogBox {
 	
@@ -47,15 +42,15 @@ TextArea textArea;
 		Button okButton, cancelButton;
 		vp=new VerticalPanel();
 		setWidget(vp);
-		setText("Import from Text");
-		vp.add(new Label("Paste the text file for your circuit here..."));
+		setText(sim.LS("Import from Text"));
+		vp.add(new Label(sim.LS("Paste the text file for your circuit here...")));
 //		vp.add(textBox = new RichTextArea());
 		vp.add(textArea = new TextArea());
 		textArea.setWidth("300px");
 		textArea.setHeight("200px");
 		hp = new HorizontalPanel();
 		vp.add(hp);
-		hp.add(okButton = new Button("OK"));
+		hp.add(okButton = new Button(sim.LS("OK")));
 		okButton.addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
 				String s;
@@ -68,7 +63,7 @@ TextArea textArea;
 					sim.readSetup(s, true);
 			}
 		});
-		hp.add(cancelButton = new Button("Cancel"));
+		hp.add(cancelButton = new Button(sim.LS("Cancel")));
 		cancelButton.addClickHandler(new ClickHandler() {
 			public void onClick(ClickEvent event) {
 				closeDialog();

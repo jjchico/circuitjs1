@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
 // contributed by Edward Calver
 
     class InvertingSchmittElm extends CircuitElm {
@@ -29,6 +26,9 @@ package com.lushprojects.circuitjs1.client;
 	double lowerTrigger;
 	double upperTrigger;
 	boolean state;
+	double logicOnLevel;
+	double logicOffLevel;
+	
 	public InvertingSchmittElm(int xx, int yy) {
 	    super(xx, yy);
 	    noDiagonal = true;
@@ -36,26 +36,31 @@ package com.lushprojects.circuitjs1.client;
 	    state=false;
 	    lowerTrigger=1.66;
 	    upperTrigger=3.33;
+	    logicOnLevel = 5;
+	    logicOffLevel = 0;
 	}
 
 	public InvertingSchmittElm(int xa, int ya, int xb, int yb, int f,
 			      StringTokenizer st) {
 	    super(xa, ya, xb, yb, f);
 	    noDiagonal = true;
+	    slewRate = .5;
+	    lowerTrigger=1.66;
+	    upperTrigger=3.33;
+	    logicOnLevel = 5;
+	    logicOffLevel = 0;
 	    try {
 		slewRate = new Double (st.nextToken()).doubleValue();
 		lowerTrigger = new Double (st.nextToken()).doubleValue();
 		upperTrigger = new Double (st.nextToken()).doubleValue();
-
+		logicOnLevel = new Double (st.nextToken()).doubleValue();
+		logicOffLevel = new Double (st.nextToken()).doubleValue();
 	    } catch (Exception e) {
-		slewRate = .5;
-	    	lowerTrigger=1.66;
-	   	upperTrigger=3.33;
 	    }
 	}
 
 	String dump() {
-	    return super.dump() + " " + slewRate+" "+lowerTrigger+" "+upperTrigger;
+	    return super.dump() + " " + slewRate+" "+lowerTrigger+" "+upperTrigger+" "+logicOnLevel+" "+logicOffLevel;
 	}
 	
 	int getDumpType() { return 183; }//Trying to find unused type
@@ -65,7 +70,9 @@ package com.lushprojects.circuitjs1.client;
 	    draw2Leads(g);
 	    g.setColor(needsHighlight() ? selectColor : lightGrayColor);
 	    drawThickPolygon(g, gatePoly);
-	    drawThickPolygon(g, symbolPoly);
+	    g.setLineWidth(2);
+	    drawPolygon(g, symbolPoly);
+	    g.setLineWidth(1);;
 	    drawThickCircle(g, pcircle.x, pcircle.y, 3);
 	    curcount = updateDotCount(current, curcount);
 	    drawDots(g, lead2, point2, curcount);
@@ -83,18 +90,11 @@ package com.lushprojects.circuitjs1.client;
 	    lead2 = interpPoint(point1, point2, .5+(ww+2)/dn);
 	    pcircle = interpPoint(point1, point2, .5+(ww-2)/dn);
 	    Point triPoints[] = newPointArray(3); 
-	    Point symPoints[] = newPointArray(6);
-	    Point dummy=new Point(0,0);
 	    interpPoint2(lead1, lead2, triPoints[0], triPoints[1], 0, hs);
 	    triPoints[2] = interpPoint(point1, point2, .5+(ww-5)/dn);
 
-    	    interpPoint2(lead1, lead2, symPoints[5], symPoints[4], 0.2, hs/4);// 0 5 1
-	    interpPoint2(lead1, lead2, symPoints[1], symPoints[2], 0.35, hs/4);//  4 2 3
-	    interpPoint2(lead1, lead2, symPoints[0],dummy, 0.1, hs/4);
-	    interpPoint2(lead1, lead2,dummy,symPoints[3], 0.45, hs/4);
-
 	    gatePoly = createPolygon(triPoints);
-	    symbolPoly=createPolygon(symPoints);
+	    symbolPoly = getSchmittPolygon(1, .3f);
 	    setBbox(point1, point2, hs);
 	}
 	int getVoltageSourceCount() { return 1; }
@@ -109,11 +109,11 @@ package com.lushprojects.circuitjs1.client;
 			if(volts[0]>upperTrigger)//Input voltage high enough to set output low
 			{
 			state=false;
-			out=0;
+			out=logicOffLevel;
 			}
 			else
 			{
-			out=5;
+			out=logicOnLevel;
 			}
 		}
 		else
@@ -121,11 +121,11 @@ package com.lushprojects.circuitjs1.client;
 			if(volts[0]<lowerTrigger)//Input voltage low enough to set output high
 			{
 			state=true;
-			out=5;
+			out=logicOnLevel;
 			}
 			else
 			{
-			out=0;
+			out=logicOffLevel;
 			}
 		}
 	    
@@ -153,6 +153,11 @@ package com.lushprojects.circuitjs1.client;
 	    	}
 	    if (n == 2)
 		return new EditInfo("Slew Rate (V/ns)", slewRate, 0, 0);
+	    if (n == 3)
+		return new EditInfo("High Voltage (V)", logicOnLevel, 0, 0);
+	    if (n == 4)
+		return new EditInfo("Low Voltage (V)", logicOffLevel, 0, 0);
+	    
 	    return null;
 	}
 	double dlt;
@@ -160,15 +165,20 @@ package com.lushprojects.circuitjs1.client;
 	public void setEditValue(int n, EditInfo ei) {
 		if (n == 0)
 		dlt=ei.value;
-	  	 if (n == 1)
+	  	if (n == 1)
 		dut=ei.value;
 	    	if (n == 2)
 		slewRate = ei.value;
+	    	if (n == 3)
+	    	    logicOnLevel = ei.value;
+	    	if (n == 4)
+	    	    logicOffLevel = ei.value;
+	    	
 		
 		if(dlt>dut)
 		{
-		upperTrigger=dlt;
-		lowerTrigger=dut;
+    		upperTrigger=dlt;
+    		lowerTrigger=dut;
 		}
 		else
 		{
@@ -183,4 +193,11 @@ package com.lushprojects.circuitjs1.client;
 	boolean hasGroundConnection(int n1) {
 	    return (n1 == 1);
 	}
+	
+	@Override double getCurrentIntoPoint(int xa, int ya) {
+	    if (xa == x2 && ya == y2)
+		return current;
+	    return 0;
+	}
+
     }

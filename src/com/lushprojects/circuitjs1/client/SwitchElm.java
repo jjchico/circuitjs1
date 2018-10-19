@@ -19,9 +19,7 @@
 
 package com.lushprojects.circuitjs1.client;
 
-// import java.awt.*;
-//import java.util.StringTokenizer;
-
+// SPST switch
 class SwitchElm extends CircuitElm {
     boolean momentary;
     // position 0 == closed, position 1 == open
@@ -63,9 +61,10 @@ class SwitchElm extends CircuitElm {
 	ps  = new Point();
 	ps2 = new Point();
     }
+    
+    final int openhs = 16;
 	
     void draw(Graphics g) {
-	int openhs = 16;
 	int hs1 = (position == 1) ? 0 : 2;
 	int hs2 = (position == 1) ? openhs : 2;
 	setBbox(point1, point2, openhs);
@@ -83,10 +82,17 @@ class SwitchElm extends CircuitElm {
 	drawThickLine(g, ps, ps2);
 	drawPosts(g);
     }
+    
+    Rectangle getSwitchRect() {
+	interpPoint(lead1, lead2, ps,  0, openhs);
+	return new Rectangle(lead1).union(new Rectangle(lead2)).union(new Rectangle(ps));
+    }
+    
     void calculateCurrent() {
 	if (position == 1)
 	    current = 0;
     }
+    
     void stamp() {
 	if (position == 0)
 	    sim.stampVoltageSource(nodes[0], nodes[1], voltSource, 0);

@@ -19,21 +19,21 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class LogicInputElm extends SwitchElm {
 	final int FLAG_TERNARY = 1;
 	final int FLAG_NUMERIC = 2;
 	double hiV, loV;
 	public LogicInputElm(int xx, int yy) {
 	    super(xx, yy, false);
+	    numHandles=1;
 	    hiV = 5;
 	    loV = 0;
+	    
 	}
 	public LogicInputElm(int xa, int ya, int xb, int yb, int f,
 			     StringTokenizer st) {
 	    super(xa, ya, xb, yb, f, st);
+	    numHandles=1;
 	    try {
 		hiV = new Double(st.nextToken()).doubleValue();
 		loV = new Double(st.nextToken()).doubleValue();
@@ -72,6 +72,11 @@ package com.lushprojects.circuitjs1.client;
 	    drawPosts(g);
 	    g.setFont(oldf);
 	}
+	
+	Rectangle getSwitchRect() {
+	    return new Rectangle(x2-10, y2-10, 20, 20);
+	}	
+
 	void setCurrent(int vs, double c) { current = -c; }
 	void stamp() {
 	    double v = (position == 0) ? loV : hiV;
@@ -100,6 +105,11 @@ package com.lushprojects.circuitjs1.client;
 		return new EditInfo("High Voltage", hiV, 10, -10);
 	    if (n == 2)
 		return new EditInfo("Low Voltage", loV, 10, -10);
+	    if (n == 3) {
+		EditInfo ei = new EditInfo("", 0, 0, 0);
+		ei.checkbox = new Checkbox("Numeric", isNumeric());
+		return ei;
+	    }
 	    return null;
 	}
 	public void setEditValue(int n, EditInfo ei) {
@@ -109,12 +119,16 @@ package com.lushprojects.circuitjs1.client;
 		hiV = ei.value;
 	    if (n == 2)
 		loV = ei.value;
+	    if (n == 3) {
+		if (ei.checkbox.getState())
+		    flags |= FLAG_NUMERIC;
+		else
+		    flags &= ~FLAG_NUMERIC;
+	    }
 	}
 	int getShortcut() { return 'i'; }
 	
-    void drawHandles(Graphics g, Color c) {
-    	g.setColor(c);
-		g.fillRect(x-3, y-3, 7, 7);
-    }
-    
+	double getCurrentIntoPoint(int xa, int ya) {
+	    return -current;
+	}
     }

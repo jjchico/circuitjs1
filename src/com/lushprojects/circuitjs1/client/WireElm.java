@@ -19,10 +19,9 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class WireElm extends CircuitElm {
+	boolean hasWireInfo; // used in CirSim to calculate wire currents
+	
 	public WireElm(int xx, int yy) { super(xx, yy); }
 	public WireElm(int xa, int ya, int xb, int yb, int f,
 		       StringTokenizer st) {
@@ -35,17 +34,18 @@ package com.lushprojects.circuitjs1.client;
 	    drawThickLine(g, point1, point2);
 	    doDots(g);
 	    setBbox(point1, point2, 3);
+	    String s = "";
 	    if (mustShowCurrent()) {
-	        String s = getShortUnitText(Math.abs(getCurrent()), "A");
-	        drawValues(g, s, 4);
-	    } else if (mustShowVoltage()) {
-	        String s = getShortUnitText(volts[0], "V");
-	        drawValues(g, s, 4);
+	        s = getShortUnitText(Math.abs(getCurrent()), "A");
+	    } 
+	    if (mustShowVoltage()) {
+	        s = (s.length() > 0 ? s + " " : "") + getShortUnitText(volts[0], "V");
 	    }
+	    drawValues(g, s, 4);
 	    drawPosts(g);
 	}
 	void stamp() {
-	    sim.stampVoltageSource(nodes[0], nodes[1], voltSource, 0);
+//	    sim.stampVoltageSource(nodes[0], nodes[1], voltSource, 0);
 	}
 	boolean mustShowCurrent() {
 	    return (flags & FLAG_SHOWCURRENT) != 0;
@@ -53,7 +53,7 @@ package com.lushprojects.circuitjs1.client;
 	boolean mustShowVoltage() {
 	    return (flags & FLAG_SHOWVOLTAGE) != 0;
 	}
-	int getVoltageSourceCount() { return 1; }
+//	int getVoltageSourceCount() { return 1; }
 	void getInfo(String arr[]) {
 	    arr[0] = "wire";
 	    arr[1] = "I = " + getCurrentDText(getCurrent());
@@ -79,13 +79,13 @@ package com.lushprojects.circuitjs1.client;
 	public void setEditValue(int n, EditInfo ei) {
 	    if (n == 0) {
 		if (ei.checkbox.getState())
-		    flags = FLAG_SHOWCURRENT;
+		    flags |= FLAG_SHOWCURRENT;
 		else
 		    flags &= ~FLAG_SHOWCURRENT;
 	    }
 	    if (n == 1) {
 		if (ei.checkbox.getState())
-		    flags = FLAG_SHOWVOLTAGE;
+		    flags |= FLAG_SHOWVOLTAGE;
 		else
 		    flags &= ~FLAG_SHOWVOLTAGE;
 	    }

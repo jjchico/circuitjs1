@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
 class MemristorElm extends CircuitElm {
     double r_on, r_off, dopeWidth, totalWidth, mobility, resistance;
     public MemristorElm(int xx, int yy) {
@@ -41,12 +38,15 @@ class MemristorElm extends CircuitElm {
 	dopeWidth = new Double(st.nextToken()).doubleValue();
 	totalWidth = new Double(st.nextToken()).doubleValue();
 	mobility = new Double(st.nextToken()).doubleValue();
+	try {
+	    current = Double.parseDouble(st.nextToken());
+	} catch (Exception e) {}
 	resistance = 100;
     }
     int getDumpType() { return 'm'; }
     String dump() {
 	return super.dump() + " " + r_on + " " + r_off + " " + dopeWidth + " " +
-	    totalWidth + " " + mobility;
+	    totalWidth + " " + mobility + " " + current;
     }
 
     Point ps3, ps4;
@@ -120,16 +120,19 @@ class MemristorElm extends CircuitElm {
 	arr[4] = "P = " + getUnitText(getPower(), "W");
     }
     double getScopeValue(int x) {
-	return (x == 2) ? resistance : (x == 1) ? getPower() : getVoltageDiff();
+	return (x == Scope.VAL_R) ? resistance : super.getScopeValue(x);
     }
-    String getScopeUnits(int x) {
-	return (x == 2) ? sim.ohmString : (x == 1) ? "W" : "V";
+    int getScopeUnits(int x) {
+	return (x == Scope.VAL_R) ? Scope.UNITS_OHMS : super.getScopeUnits(x);
+    }
+    boolean canShowValueInScope(int x) {
+	return x == Scope.VAL_R;
     }
     public EditInfo getEditInfo(int n) {
 	if (n == 0)
-	    return new EditInfo("Max Resistance (ohms)", r_on, 0, 0);
+	    return new EditInfo("Min Resistance (ohms)", r_on, 0, 0);
 	if (n == 1)
-	    return new EditInfo("Min Resistance (ohms)", r_off, 0, 0);
+	    return new EditInfo("Max Resistance (ohms)", r_off, 0, 0);
 	if (n == 2)
 	    return new EditInfo("Width of Doped Region (nm)", dopeWidth*1e9, 0, 0);
 	if (n == 3)

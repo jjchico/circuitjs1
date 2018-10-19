@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class InductorElm extends CircuitElm {
 	Inductor ind;
 	double inductance;
@@ -99,7 +96,7 @@ package com.lushprojects.circuitjs1.client;
 	}
 	
 	public void setEditValue(int n, EditInfo ei) {
-	    if (n == 0)
+	    if (n == 0 && ei.value > 0)
 		inductance = ei.value;
 	    if (n == 1) {
 		if (ei.checkbox.getState())

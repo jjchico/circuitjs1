@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
     class OpAmpElm extends CircuitElm {
 	int opsize, opheight, opwidth, opaddtext;
 	double maxOut, minOut, gain, gbw;
@@ -29,6 +26,7 @@ package com.lushprojects.circuitjs1.client;
 	final int FLAG_SWAP = 1;
 	final int FLAG_SMALL = 2;
 	final int FLAG_LOWGAIN = 4;
+	final int FLAG_GAIN = 8;
 	public OpAmpElm(int xx, int yy) {
 	    super(xx, yy);
 	    noDiagonal = true;
@@ -36,7 +34,8 @@ package com.lushprojects.circuitjs1.client;
 	    minOut = -15;
 	    gbw = 1e6;
 	    setSize(sim.smallGridCheckItem.getState() ? 1 : 2);
-	    setGain();
+	    flags = FLAG_GAIN;
+	    gain = 100000;
 	}
 	public OpAmpElm(int xa, int ya, int xb, int yb, int f,
 			StringTokenizer st) {
@@ -50,6 +49,9 @@ package com.lushprojects.circuitjs1.client;
 		maxOut = new Double(st.nextToken()).doubleValue();
 		minOut = new Double(st.nextToken()).doubleValue();
 		gbw = new Double(st.nextToken()).doubleValue();
+		volts[0] = new Double(st.nextToken()).doubleValue();
+		volts[1] = new Double(st.nextToken()).doubleValue();
+		gain = new Double(st.nextToken()).doubleValue();
 	    } catch (Exception e) {
 	    }
 	    noDiagonal = true;
@@ -57,13 +59,16 @@ package com.lushprojects.circuitjs1.client;
 	    setGain();
 	}
 	void setGain() {
+	    if ((flags & FLAG_GAIN) != 0)
+		return;
+		
 	    // gain of 100000 breaks e-amp-dfdx.txt
 	    // gain was 1000, but it broke amp-schmitt.txt
 	    gain = ((flags & FLAG_LOWGAIN) != 0) ? 1000 : 100000;
-	    
 	}
 	String dump() {
-	    return super.dump() + " " + maxOut + " " + minOut + " " + gbw;
+	    flags |= FLAG_GAIN;
+	    return super.dump() + " " + maxOut + " " + minOut + " " + gbw + " " + volts[0] + " " + volts[1] + " " + gain;
 	}
 	boolean nonLinear() { return true; }
 	void draw(Graphics g) {
@@ -72,14 +77,14 @@ package com.lushprojects.circuitjs1.client;
 	    drawThickLine(g, in1p[0], in1p[1]);
 	    setVoltageColor(g, volts[1]);
 	    drawThickLine(g, in2p[0], in2p[1]);
+	    setVoltageColor(g, volts[2]);
+	    drawThickLine(g, lead2, point2);
 	    g.setColor(needsHighlight() ? selectColor : lightGrayColor);
 	    setPowerColor(g, true);
 	    drawThickPolygon(g, triangle);
 	    g.setFont(plusFont);
 	    drawCenteredText(g, "-", textp[0].x, textp[0].y-2, true);
 	    drawCenteredText(g, "+", textp[1].x, textp[1].y  , true);
-	    setVoltageColor(g, volts[2]);
-	    drawThickLine(g, lead2, point2);
 	    curcount = updateDotCount(current, curcount);
 	    drawDots(g, point2, lead2, curcount);
 	    drawPosts(g);
@@ -129,7 +134,7 @@ package com.lushprojects.circuitjs1.client;
 	    // convergence easier.  so we hide that here.
 	    double vo = Math.max(Math.min(volts[2], maxOut), minOut);
 	    arr[3] = "Vout = " + getVoltageText(vo);
-	    arr[4] = "Iout = " + getCurrentText(getCurrent());
+	    arr[4] = "Iout = " + getCurrentText(-current);
 	    arr[5] = "range = " + getVoltageText(minOut) + " to " +
 		getVoltageText(maxOut);
 	}
@@ -183,6 +188,8 @@ package com.lushprojects.circuitjs1.client;
 		return new EditInfo("Max Output (V)", maxOut, 1, 20);
 	    if (n == 1)
 		return new EditInfo("Min Output (V)", minOut, -20, 0);
+	    if (n == 2)
+		return new EditInfo("Gain", gain, 10, 1000000);
 	    return null;
 	}
 	public void setEditValue(int n, EditInfo ei) {
@@ -190,6 +197,21 @@ package com.lushprojects.circuitjs1.client;
 		maxOut = ei.value;
 	    if (n == 1)
 		minOut = ei.value;
+	    if (n == 2 && ei.value > 0)
+		gain = ei.value;
 	}
-	 int getShortcut() { return 'a'; }
+	int getShortcut() { return 'a'; }
+	
+	@Override double getCurrentIntoNode(int n) { 
+	    if (n==2)
+		return -current;
+	   return 0;
+	}
+	
+	
+	@Override double getCurrentIntoPoint(int xa, int ya) { 
+	    if (xa == x2 && ya == y2)
+		return -current;
+	    return 0;
+	}
     }

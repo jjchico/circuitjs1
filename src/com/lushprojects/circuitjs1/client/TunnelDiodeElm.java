@@ -19,9 +19,6 @@
 
 package com.lushprojects.circuitjs1.client;
 
-//import java.awt.*;
-//import java.util.StringTokenizer;
-
 class TunnelDiodeElm extends CircuitElm {
     public TunnelDiodeElm(int xx, int yy) {
 	super(xx, yy);
@@ -107,9 +104,11 @@ class TunnelDiodeElm extends CircuitElm {
 	voltdiff = limitStep(voltdiff, lastvoltdiff);
 	lastvoltdiff = voltdiff;
 	
+	double i0 = piv*Math.exp(-pvv);
 	double i = pip*Math.exp(-pvpp/pvt)*(Math.exp(voltdiff/pvt)-1) +
 	    pip*(voltdiff/pvp)*Math.exp(1-voltdiff/pvp) +
-	    piv*Math.exp(voltdiff-pvv);
+	    piv*Math.exp(voltdiff-pvv) - i0;
+	
 	
 	double geq = pip*Math.exp(-pvpp/pvt)*Math.exp(voltdiff/pvt)/pvt +
 	    pip*Math.exp(1-voltdiff/pvp)/pvp
@@ -121,9 +120,10 @@ class TunnelDiodeElm extends CircuitElm {
     }
     void calculateCurrent() {
 	double voltdiff = volts[0] - volts[1];
+	double i0 = piv*Math.exp(-pvv);
 	current = pip*Math.exp(-pvpp/pvt)*(Math.exp(voltdiff/pvt)-1) +
 	    pip*(voltdiff/pvp)*Math.exp(1-voltdiff/pvp) +
-	    piv*Math.exp(voltdiff-pvv);
+	    piv*Math.exp(voltdiff-pvv) - i0;
     }
     void getInfo(String arr[]) {
 	arr[0] = "tunnel diode";
